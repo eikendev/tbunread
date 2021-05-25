@@ -34,7 +34,12 @@ pub fn count_all(watch_dir: &Path) -> CountResult {
                 let contents = std::fs::read_to_string(p).expect("could not read file");
                 let count = re.captures_iter(&contents).map(|cap| cap["count"].to_string()).last();
 
-                count.map(|c| (account, c.parse().ok().unwrap_or(0)))
+                // If a None was returned, some accounts names might not be caught later on.
+                if count.is_some() {
+                    count.map(|c| (account, c.parse().ok().unwrap_or(0)))
+                } else {
+                    Some((account, 0))
+                }
             }
             Err(_) => None,
         })
