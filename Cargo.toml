@@ -1,0 +1,18 @@
+[package]
+name = "tbunread"
+version = "0.0.1"
+authors = ["eikendev"]
+edition = "2018"
+description = "Helps you to keep an eye on unread emails in Thunderbird."
+homepage = "https://github.com/eikendev/tbunread"
+repository = "https://github.com/eikendev/tbunread.git"
+readme = "README.md"
+license = "ISC"
+
+[dependencies]
+argh = "0.1.4"
+dirs = "3.0.2"
+glob = "0.3.0"
+hotwatch = "0.4.5"
+regex = "1.5.4"
+rust-ini = "0.17.0"
