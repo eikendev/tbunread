@@ -1,6 +1,6 @@
 [package]
 name = "tbunread"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["eikendev"]
 edition = "2018"
 description = "Helps you to keep an eye on unread emails in Thunderbird."
