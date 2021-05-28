@@ -1,4 +1,5 @@
 use ini::Ini;
+use log::{debug, info};
 use std::path::PathBuf;
 
 pub fn get_thunderbird_home() -> PathBuf {
@@ -27,11 +28,11 @@ fn process_sections(file: Ini) -> PathBuf {
 
 pub fn get_watch_dir() -> PathBuf {
     let path = get_thunderbird_home().join("profiles.ini");
-    println!("[*] Reading: {}", path.display());
+    debug!("Reading {}", path.display());
 
     if let Ok(file) = Ini::load_from_file(path) {
         let watch_dir = process_sections(file);
-        println!("[+] Watching: {}", watch_dir.display());
+        info!("Watching {}", watch_dir.display());
         return watch_dir;
     }
     panic!("cannot read profiles.ini");

@@ -1,8 +1,12 @@
 use argh::FromArgs;
 
 #[derive(FromArgs)]
-/// Prints various metrics of your system.
+/// Prints how many unread emails you have in Thunderbird.
 pub struct Settings {
+    /// do not print results to standard output
+    #[argh(switch, short = 'q')]
+    pub quiet: bool,
+
     /// file to write the results to
     #[argh(option)]
     pub output: Option<String>,
