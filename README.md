@@ -12,11 +12,10 @@ It will automatically detect your default Thunderbird profile.
 
 ```
 $ tbunread --output /where/you/need/the/output
-[*] Reading: /path/to/my/.thunderbird/profiles.ini
-[+] Watching: /path/to/my/.thunderbird/some.profile/ImapMail/tbunread
-[*] Update: 6 1 1 2
-[*] Update: 5 1 1 2
-[*] Update: 5 1 2 2
+[...] Watching /path/to/my/.thunderbird/some.profile/ImapMail/tbunread
+6 1 1 2
+5 1 1 2
+5 1 2 2
 ```
 
 To use the script you have to provide it with the email accounts you want to query.
@@ -52,7 +51,7 @@ See below for an example on how the service file should look like.
 Description=tbunread
 
 [Service]
-Type=fork
+Type=simple
 ExecStart=tbunread --output /where/you/need/the/output
 Restart=on-success
 RestartSec=5s
