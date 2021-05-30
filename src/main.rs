@@ -26,6 +26,7 @@ fn update_count(s: &Settings, watch_dir: &Path) {
 }
 
 fn main() {
+    human_panic::setup_panic!();
     env_logger::Builder::from_env(Env::default().filter_or("LOG_LEVEL", "info")).init();
 
     let settings: Settings = argh::from_env();
