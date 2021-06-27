@@ -10,6 +10,7 @@ readme = "README.md"
 license = "ISC"
 
 [dependencies]
+anyhow = "1.0.41"
 argh = "0.1.4"
 dirs = "3.0.2"
 env_logger = "0.8.3"

@@ -1,12 +1,13 @@
 use regex::Regex;
 use std::collections::HashMap;
 use std::path::{Component, Path};
+use anyhow::{Context, Result};
 
-pub struct CountResult {
+pub struct Count {
     list: Vec<usize>,
 }
 
-impl CountResult {
+impl Count {
     pub fn display(&self) -> String {
         let output: Vec<String> = self.list.iter().map(|x| x.to_string()).collect();
         output.join(" ")
@@ -23,10 +24,10 @@ fn parse_account(path: &Path, base: &Path) -> String {
     }
 }
 
-pub fn count_all(watch_dir: &Path) -> CountResult {
+pub fn count_all(watch_dir: &Path) -> Result<Count> {
     let path = watch_dir.join("**").join("*.msf").display().to_string();
     let counts: Vec<(String, usize)> = glob::glob(&path)
-        .expect("failed to walk directory")
+        .context("Unable to walk directory")?
         .map(|file| match file {
             Ok(p) => {
                 let account = parse_account(&p, watch_dir);
@@ -61,7 +62,7 @@ pub fn count_all(watch_dir: &Path) -> CountResult {
     let mut accounts: Vec<(String, usize)> = accounts.into_iter().map(|x| (x.0, x.1.iter().sum())).collect();
     accounts.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
-    CountResult {
+    Ok(Count {
         list: accounts.into_iter().map(|x| x.1).collect(),
-    }
+    })
 }
