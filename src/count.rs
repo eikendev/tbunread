@@ -1,7 +1,7 @@
+use anyhow::{Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 use std::path::{Component, Path};
-use anyhow::{Context, Result};
 
 pub struct Count {
     list: Vec<usize>,
