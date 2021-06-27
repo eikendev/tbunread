@@ -45,7 +45,7 @@ pub fn count_all(watch_dir: &Path) -> Result<Count> {
             Err(_) => None,
         })
         .filter(|c| c.is_some())
-        .map(|c| c.unwrap())
+        .flatten()
         .collect();
 
     let mut accounts: HashMap<String, Vec<usize>> = HashMap::new();
