@@ -1,6 +1,6 @@
 [package]
 name = "tbunread"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["eikendev"]
 edition = "2018"
 description = "Helps you to keep an eye on unread emails in Thunderbird."
@@ -17,6 +17,8 @@ env_logger = "0.8.3"
 glob = "0.3.0"
 hotwatch = "0.4.5"
 human-panic = "1.0.3"
+lazy_static = "1.4.0"
 log = "0.4.14"
 regex = "1.5.4"
 rust-ini = "0.17.0"
+sysinfo = "0.20.3"

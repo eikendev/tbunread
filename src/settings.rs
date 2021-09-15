@@ -10,4 +10,8 @@ pub struct Settings {
     /// file to write the results to
     #[argh(option)]
     pub output: Option<String>,
+
+    /// interval in seconds to scan for the Thunderbird process
+    #[argh(option, default = "5")]
+    pub interval: u64,
 }
