@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use ini::Ini;
-use log::{debug, info};
+use log::{debug, error, info};
 use std::path::PathBuf;
 
 pub fn get_thunderbird_home() -> Result<PathBuf> {
@@ -27,7 +27,7 @@ fn process_sections(file: Ini) -> Result<PathBuf> {
     bail!("Unable to find default section");
 }
 
-pub fn get_watch_dir() -> Result<PathBuf> {
+pub fn _get_watch_dir() -> Result<PathBuf> {
     let path = get_thunderbird_home()?.join("profiles.ini");
     debug!("Reading {}", path.display());
 
@@ -37,4 +37,14 @@ pub fn get_watch_dir() -> Result<PathBuf> {
         return Ok(watch_dir);
     }
     bail!("Unable to read profiles.ini");
+}
+
+pub fn get_watch_dir() -> PathBuf {
+    let path = _get_watch_dir();
+    if let Err(e) = path {
+        error!("{}", e);
+        std::process::exit(1);
+    }
+
+    path.unwrap()
 }

@@ -43,19 +43,17 @@ fn update_and_log(s: &Settings, watch_dir: &Path) {
     }
 }
 
-fn run_counter(s: &'static Settings) -> Result<()> {
-    let watch_dir = profiles::get_watch_dir()?;
-
+fn run_counter(s: &'static Settings, path: &'static Path) -> Result<()> {
     // Fire once on start.
-    update_and_log(s, &watch_dir);
+    update_and_log(s, path);
 
     let mut hotwatch = Hotwatch::new().context("hotwatch failed to initialize")?;
     hotwatch
-        .watch(watch_dir.to_owned(), move |event: Event| {
+        .watch(path.to_owned(), move |event: Event| {
             if let Event::Write(_) = event {
-                update_and_log(s, &watch_dir);
+                update_and_log(s, path);
             } else if let Event::Create(_) = event {
-                update_and_log(s, &watch_dir);
+                update_and_log(s, path);
             }
         })
         .context("Failed to watch directory")?;
@@ -63,26 +61,33 @@ fn run_counter(s: &'static Settings) -> Result<()> {
     Ok(())
 }
 
-fn watch_process(s: &Settings) -> Result<()> {
+fn watch_process(s: &Settings, path: &Path) -> Result<()> {
     let delay = time::Duration::from_secs(s.interval);
     let mut sys = System::new_with_specifics(RefreshKind::new().with_processes());
+    let mut was_running = true;
 
     loop {
         sys.refresh_processes();
-
-        let mut found = false;
+        let mut running = false;
 
         for process in sys.processes().values() {
             let stem = process.exe().file_stem();
             match stem {
-                Some(x) if x == ffi::OsStr::new("thunderbird") => found = true,
+                Some(x) if x == ffi::OsStr::new("thunderbird") => {
+                    running = true;
+                    break;
+                }
                 _ => {}
             };
         }
 
-        if !found {
-            write_count(s, "???")?
+        if was_running && !running {
+            write_count(s, "???")?;
+        } else if !was_running && running {
+            update_count(s, path)?;
         }
+
+        was_running = running;
         thread::sleep(delay);
     }
 }
@@ -93,6 +98,7 @@ fn main() {
 
     lazy_static! {
         static ref SETTINGS: Settings = argh::from_env();
+        static ref PROFILE_DIR: PathBuf = profiles::get_watch_dir();
     }
 
     if SETTINGS.quiet && SETTINGS.output.is_none() {
@@ -100,12 +106,11 @@ fn main() {
         exit(1);
     }
 
-    if let Err(e) = run_counter(&SETTINGS) {
+    if let Err(e) = run_counter(&SETTINGS, &PROFILE_DIR) {
         error!("{}", e);
         std::process::exit(1);
     }
-
-    if let Err(e) = watch_process(&SETTINGS) {
+    if let Err(e) = watch_process(&SETTINGS, &PROFILE_DIR) {
         error!("{}", e);
         std::process::exit(1);
     }
