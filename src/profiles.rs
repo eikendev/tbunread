@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use ini::Ini;
-use log::{debug, error, info};
+use log::{debug, error};
 use std::path::PathBuf;
 
 pub fn get_thunderbird_home() -> Result<PathBuf> {
@@ -33,7 +33,6 @@ pub fn _get_watch_dir() -> Result<PathBuf> {
 
     if let Ok(file) = Ini::load_from_file(path) {
         let watch_dir = process_sections(file)?;
-        info!("Watching {}", watch_dir.display());
         return Ok(watch_dir);
     }
     bail!("Unable to read profiles.ini");

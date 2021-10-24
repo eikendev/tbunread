@@ -5,13 +5,14 @@ mod settings;
 use anyhow::{Context, Result};
 use count::count_all;
 use env_logger::Env;
-use hotwatch::Event;
-use hotwatch::Hotwatch;
 use lazy_static::*;
-use log::error;
+use log::{error, info};
+use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use settings::Settings;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::sync::mpsc::channel;
+use std::time::Duration;
 use std::{ffi, fs, thread, time};
 use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 
@@ -44,19 +45,21 @@ fn update_and_log(s: &Settings, watch_dir: &Path) {
 }
 
 fn run_counter(s: &'static Settings, path: &'static Path) -> Result<()> {
-    // Fire once on start.
-    update_and_log(s, path);
-
-    let mut hotwatch = Hotwatch::new().context("hotwatch failed to initialize")?;
-    hotwatch
-        .watch(path.to_owned(), move |event: Event| {
-            if let Event::Write(_) = event {
-                update_and_log(s, path);
-            } else if let Event::Create(_) = event {
-                update_and_log(s, path);
+    info!("Watching {}", path.display());
+    thread::spawn(move || {
+        let (tx, rx) = channel();
+        let mut watcher = watcher(tx, Duration::from_secs(2)).unwrap();
+        watcher.watch(path.to_owned(), RecursiveMode::Recursive).unwrap();
+        loop {
+            match rx.recv() {
+                Ok(DebouncedEvent::Write(_)) => {
+                    update_and_log(s, path);
+                }
+                Ok(_) => {}
+                Err(e) => error!("Watch error: {}", e.to_string()),
             }
-        })
-        .context("Failed to watch directory")?;
+        }
+    });
 
     Ok(())
 }
