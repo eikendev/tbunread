@@ -68,6 +68,7 @@ fn watch_process(s: &Settings, path: &Path) -> Result<()> {
     let delay = time::Duration::from_secs(s.interval);
     let mut sys = System::new_with_specifics(RefreshKind::new().with_processes());
     let mut was_running = true;
+    let mut first = true;
 
     loop {
         sys.refresh_processes();
@@ -86,11 +87,12 @@ fn watch_process(s: &Settings, path: &Path) -> Result<()> {
 
         if was_running && !running {
             write_count(s, "???")?;
-        } else if !was_running && running {
+        } else if first || (!was_running && running) {
             update_count(s, path)?;
         }
 
         was_running = running;
+        first = false;
         thread::sleep(delay);
     }
 }
