@@ -1,4 +1,4 @@
-[![Build status](https://img.shields.io/github/workflow/status/eikendev/tbunread/Main)](https://github.com/eikendev/tbunread/actions)
+[![Build status](https://img.shields.io/github/actions/workflow/status/eikendev/tbunread/main.yml?branch=main)](https://github.com/eikendev/tbunread/actions)
 [![License](https://img.shields.io/crates/l/tbunread)](https://crates.io/crates/tbunread)
 [![Version](https://img.shields.io/crates/v/tbunread)](https://crates.io/crates/tbunread)
 [![Downloads](https://img.shields.io/crates/d/tbunread)](https://crates.io/crates/tbunread)
