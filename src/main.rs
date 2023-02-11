@@ -18,7 +18,7 @@ use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 
 fn write_count(s: &Settings, data: &str) -> Result<()> {
     if !s.quiet {
-        println!("{}", data);
+        println!("{data}");
     }
 
     if let Some(path) = &s.output {
@@ -49,7 +49,7 @@ fn run_counter(s: &'static Settings, path: &'static Path) -> Result<()> {
     thread::spawn(move || {
         let (tx, rx) = channel();
         let mut watcher = watcher(tx, Duration::from_secs(2)).unwrap();
-        watcher.watch(path.to_owned(), RecursiveMode::Recursive).unwrap();
+        watcher.watch(path, RecursiveMode::Recursive).unwrap();
         loop {
             match rx.recv() {
                 Ok(DebouncedEvent::Write(_)) => {
