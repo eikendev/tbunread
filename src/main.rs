@@ -2,19 +2,24 @@ mod count;
 mod profiles;
 mod settings;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use count::count_all;
 use env_logger::Env;
-use lazy_static::*;
+use lazy_static::lazy_static;
 use log::{error, info};
-use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
+use notify::{DebouncedEvent, RecursiveMode, Watcher, watcher};
 use settings::Settings;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use std::{ffi, fs, thread, time};
 use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
+
+lazy_static! {
+    static ref SETTINGS: Settings = argh::from_env();
+    static ref PROFILE_DIR: PathBuf = profiles::get_watch_dir();
+}
 
 fn write_count(s: &Settings, data: &str) -> Result<()> {
     if !s.quiet {
@@ -37,26 +42,45 @@ fn update_count(s: &Settings, watch_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn update_and_log(s: &Settings, watch_dir: &Path) {
-    if let Err(e) = update_count(s, watch_dir) {
-        error!("{}", e);
-        exit(1);
+#[allow(clippy::collapsible_if)]
+fn update_and_log(s: &Settings, watch_dir: &Path, err_tx: &Sender<anyhow::Error>) {
+    if let Err(err) = update_count(s, watch_dir) {
+        if err_tx
+            .send(err.context("failed to update unread count after change event"))
+            .is_err()
+        {
+            error!("Failed to forward update error to main thread");
+        }
     }
 }
 
-fn run_counter(s: &'static Settings, path: &'static Path) -> Result<()> {
+fn watch_filesystem(s: &'static Settings, path: &'static Path, err_tx: Sender<anyhow::Error>) -> Result<()> {
     info!("Watching {}", path.display());
     thread::spawn(move || {
-        let (tx, rx) = channel();
-        let mut watcher = watcher(tx, Duration::from_secs(2)).unwrap();
-        watcher.watch(path, RecursiveMode::Recursive).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let mut watcher = match watcher(tx, Duration::from_secs(2)) {
+            Ok(w) => w,
+            Err(e) => {
+                let _ = err_tx.send(anyhow!("unable to start filesystem watcher: {}", e));
+                return;
+            }
+        };
+
+        if let Err(e) = watcher.watch(path, RecursiveMode::Recursive) {
+            let _ = err_tx.send(anyhow!("unable to watch {} recursively: {}", path.display(), e));
+            return;
+        }
+
         loop {
             match rx.recv() {
                 Ok(DebouncedEvent::Write(_)) => {
-                    update_and_log(s, path);
+                    update_and_log(s, path, &err_tx);
                 }
                 Ok(_) => {}
-                Err(e) => error!("Watch error: {}", e.to_string()),
+                Err(e) => {
+                    let _ = err_tx.send(anyhow!("watch event channel failed: {}", e));
+                    break;
+                }
             }
         }
     });
@@ -64,13 +88,19 @@ fn run_counter(s: &'static Settings, path: &'static Path) -> Result<()> {
     Ok(())
 }
 
-fn watch_process(s: &Settings, path: &Path) -> Result<()> {
+fn watch_thunderbird_process(s: &Settings, path: &Path, err_rx: &Receiver<anyhow::Error>) -> Result<()> {
     let delay = time::Duration::from_secs(s.interval);
     let mut sys = System::new_with_specifics(RefreshKind::new().with_processes());
     let mut was_running = true;
     let mut first = true;
 
     loop {
+        match err_rx.try_recv() {
+            Ok(err) => return Err(err),
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Disconnected) => return Err(anyhow!("file watcher thread disconnected")),
+        }
+
         sys.refresh_processes();
         let mut running = false;
 
@@ -101,21 +131,18 @@ fn main() {
     human_panic::setup_panic!();
     env_logger::Builder::from_env(Env::default().filter_or("LOG_LEVEL", "info")).init();
 
-    lazy_static! {
-        static ref SETTINGS: Settings = argh::from_env();
-        static ref PROFILE_DIR: PathBuf = profiles::get_watch_dir();
-    }
-
     if SETTINGS.quiet && SETTINGS.output.is_none() {
         error!("Cannot be quiet and have no output");
         exit(1);
     }
 
-    if let Err(e) = run_counter(&SETTINGS, &PROFILE_DIR) {
+    let (err_tx, err_rx) = mpsc::channel();
+
+    if let Err(e) = watch_filesystem(&SETTINGS, &PROFILE_DIR, err_tx) {
         error!("{}", e);
         std::process::exit(1);
     }
-    if let Err(e) = watch_process(&SETTINGS, &PROFILE_DIR) {
+    if let Err(e) = watch_thunderbird_process(&SETTINGS, &PROFILE_DIR, &err_rx) {
         error!("{}", e);
         std::process::exit(1);
     }

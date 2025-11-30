@@ -2,7 +2,7 @@
 name = "tbunread"
 version = "0.0.9"
 authors = ["eikendev"]
-edition = "2018"
+edition = "2024"
 description = "Helps you to keep an eye on unread emails in Thunderbird."
 homepage = "https://github.com/eikendev/tbunread"
 repository = "https://github.com/eikendev/tbunread.git"

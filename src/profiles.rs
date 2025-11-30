@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use ini::Ini;
 use log::{debug, error};
 use std::path::PathBuf;

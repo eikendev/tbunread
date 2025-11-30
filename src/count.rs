@@ -1,7 +1,13 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Component, Path};
+
+lazy_static! {
+    static ref COUNT_REGEX: Regex = Regex::new(r"\(\^A2=(?P<count>[[:xdigit:]]+)\)").expect("valid Thunderbird regex");
+}
 
 pub struct Count {
     list: Vec<usize>,
@@ -14,47 +20,41 @@ impl Count {
     }
 }
 
-fn parse_account(path: &Path, base: &Path) -> String {
-    let relative = path.strip_prefix(base).unwrap();
-    let component = relative.components().next().unwrap();
+fn parse_account(path: &Path, base: &Path) -> Result<String> {
+    let relative = path
+        .strip_prefix(base)
+        .context("failed to strip watch directory prefix")?;
+
+    let component = relative.components().next().context("path missing account component")?;
 
     match component {
-        Component::Normal(c) => c.to_str().unwrap().to_string(),
-        _ => panic!("failed converting path component to string"),
+        Component::Normal(c) => c
+            .to_str()
+            .map(|s| s.to_string())
+            .context("failed converting path component to string"),
+        _ => bail!("unsupported path component {component:?}"),
     }
 }
 
 pub fn count_all(watch_dir: &Path) -> Result<Count> {
-    let path = watch_dir.join("**").join("*.msf").display().to_string();
-    let counts: Vec<(String, usize)> = glob::glob(&path)
-        .context("Unable to walk directory")?
-        .map(|file| match file {
-            Ok(p) => {
-                let account = parse_account(&p, watch_dir);
-                let re = Regex::new(r"\(\^A2=(?P<count>[[:xdigit:]]+)\)").unwrap();
-                let contents = std::fs::read_to_string(p).expect("could not read file");
-                let count = re.captures_iter(&contents).map(|cap| cap["count"].to_string()).last();
-
-                // If a None was returned, some accounts names might not be caught later on.
-                match count {
-                    Some(string) => {
-                        let count = usize::from_str_radix(&string, 16).unwrap_or(0);
-                        Some((account, count))
-                    }
-                    None => Some((account, 0)),
-                }
-            }
-            Err(_) => None,
-        })
-        .filter(|c| c.is_some())
-        .flatten()
-        .collect();
+    let pattern = watch_dir.join("**").join("*.msf");
+    let pattern = pattern
+        .to_str()
+        .context("watch directory contains non-UTF-8 characters")?
+        .to_string();
 
     let mut accounts: HashMap<String, usize> = HashMap::new();
 
-    for (account, count) in counts {
-        let current = accounts.entry(account).or_insert(0);
-        *current += count;
+    for entry in glob::glob(&pattern).context("Unable to walk directory")? {
+        let path = entry?;
+        let account = parse_account(&path, watch_dir)?;
+        let contents = fs::read_to_string(&path).with_context(|| format!("could not read {}", path.display()))?;
+        let count = COUNT_REGEX
+            .captures_iter(&contents)
+            .filter_map(|cap| usize::from_str_radix(&cap["count"], 16).ok())
+            .last()
+            .unwrap_or(0);
+        *accounts.entry(account).or_default() += count;
     }
 
     let mut accounts: Vec<(String, usize)> = accounts.into_iter().collect();
