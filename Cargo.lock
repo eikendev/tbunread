@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "tbunread"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "anyhow",
  "argh",
