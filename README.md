@@ -1,50 +1,88 @@
-[![Build status](https://img.shields.io/github/actions/workflow/status/eikendev/tbunread/main.yml?branch=main)](https://github.com/eikendev/tbunread/actions)
-[![License](https://img.shields.io/crates/l/tbunread)](https://crates.io/crates/tbunread)
-[![Version](https://img.shields.io/crates/v/tbunread)](https://crates.io/crates/tbunread)
-[![Downloads](https://img.shields.io/crates/d/tbunread)](https://crates.io/crates/tbunread)
+<div align="center">
+	<h1>tbunread</h1>
+	<h4 align="center">
+		Unread counts for your <a href="https://www.thunderbird.net/">Thunderbird</a> accounts.
+	</h4>
+	<p>Watch Thunderbird mail folders and output unread totals in a simple, script-friendly format.</p>
+</div>
 
-## About
+<p align="center">
+	<a href="https://github.com/eikendev/tbunread/actions"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/eikendev/tbunread/main.yml?branch=main"/></a>&nbsp;
+	<a href="https://crates.io/crates/tbunread"><img alt="License" src="https://img.shields.io/crates/l/tbunread"/></a>&nbsp;
+	<a href="https://crates.io/crates/tbunread"><img alt="Version" src="https://img.shields.io/crates/v/tbunread"/></a>&nbsp;
+	<a href="https://crates.io/crates/tbunread"><img alt="Downloads" src="https://img.shields.io/crates/d/tbunread"/></a>&nbsp;
+</p>
 
-This script outputs how many emails are unread in each account of Thunderbird.
-It will automatically detect your default Thunderbird profile.
+## ✨&nbsp;Why tbunread?
 
-## Usage
+Thunderbird is great, but it does not expose a simple, stable way to read unread counts from the outside. If you want to feed a status bar, a panel widget, or a script, I found no good native way to do that.
 
+tbunread reads Thunderbird's local IMAP index files and prints a compact list of unread totals, ordered exactly the way you want. It updates whenever files change and stays out of the way.
+
+## 🧠&nbsp;How it works
+
+- Configure email accounts by creating symlinks in `ImapMail/tbunread` (see [Configuration](#configuration))
+- Setup tbunread to run in the background (see [Recommended setup](#recommended-setup-systemd))
+- tbunread watches the default profile for changes
+  * Prints counts to stdout and optionally writes them to a file
+  * Emits `???` when Thunderbird is not running
+
+## 🚀&nbsp;Installation
+
+Install tbunread using Cargo:
+
+```bash
+cargo install tbunread
 ```
-$ tbunread --output /where/you/need/the/output
-[...] Watching /path/to/my/.thunderbird/some.profile/ImapMail/tbunread
-6 1 1 2
-5 1 1 2
-5 1 2 2
-```
 
-To use the script you have to provide it with the email accounts you want to query.
-This is done by creating symbolic links in a `tbunread` directory inside the `ImapMail` directory of Thunderbird.
-The symbolic links point to one of the IMAP directories (POP3 is not supported).
-By naming the links in the alphabetical order of your choice you can also choose the order of the output.
+## 📄&nbsp;Usage
 
-Here is an example of how it might look inside a `tbunread` directory:
-```
+### Configuration
+
+tbunread only processes accounts you explicitly link. Create a `tbunread` directory inside your Thunderbird profile's `ImapMail` directory, then add symlinks to each IMAP account directory. (POP3 is not supported.)
+
+Example layout:
+
+```bash
 $ pwd
-/path/to/my/.thunderbird/some.profile/ImapMail/tbunread
+/path/to/.thunderbird/some.profile/ImapMail/tbunread
 $ ls -lA
 lrwxrwxrwx. (...) 01 -> ../mail.example1.com
 lrwxrwxrwx. (...) 02 -> ../mail.example2.com
 lrwxrwxrwx. (...) 03 -> ../mail.example3.com
 ```
 
-## Installation
+The symlink names define the output order (alphabetical).
 
-### From crates.io
+### Run
+
+Print unread counts to stdout:
 
 ```bash
-cargo install tbunread
+tbunread
 ```
 
-## Recommended Setup
+Write counts to a file:
 
-I recommend using [systemd](https://systemd.io/) to run the script.
-See below for an example on how the service file should look like.
+```bash
+tbunread --output /where/you/need/the/output
+```
+
+Only write to a file (no stdout):
+
+```bash
+tbunread --quiet --output /where/you/need/the/output
+```
+
+Adjust the Thunderbird process scan interval (seconds):
+
+```bash
+tbunread --interval 10
+```
+
+## 🔧&nbsp;Recommended setup (systemd)
+
+For continuous updates, run tbunread as a systemd user service:
 
 ```ini
 [Unit]
