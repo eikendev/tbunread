@@ -7,7 +7,7 @@
 </div>
 
 <p align="center">
-	<a href="https://github.com/eikendev/tbunread/actions"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/eikendev/tbunread/main.yml?branch=main"/></a>&nbsp;
+	<a href="https://github.com/eikendev/tbunread/actions"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/eikendev/tbunread/release.yaml?branch=main"/></a>&nbsp;
 	<a href="https://crates.io/crates/tbunread"><img alt="License" src="https://img.shields.io/crates/l/tbunread"/></a>&nbsp;
 	<a href="https://crates.io/crates/tbunread"><img alt="Version" src="https://img.shields.io/crates/v/tbunread"/></a>&nbsp;
 	<a href="https://crates.io/crates/tbunread"><img alt="Downloads" src="https://img.shields.io/crates/d/tbunread"/></a>&nbsp;
@@ -29,10 +29,22 @@ tbunread reads Thunderbird's local IMAP index files and prints a compact list of
 
 ## 🚀&nbsp;Installation
 
-Install tbunread using Cargo:
+Install a prebuilt binary with [cargo-binstall](https://github.com/cargo-bins/cargo-binstall):
+
+```bash
+cargo binstall tbunread
+```
+
+Or build from source:
 
 ```bash
 cargo install tbunread
+```
+
+Static musl binaries for `x86_64` and `aarch64` are attached to every [release](https://github.com/eikendev/tbunread/releases), each with a `.sha256` checksum and a verifiable build provenance:
+
+```bash
+gh attestation verify tbunread-x86_64-unknown-linux-musl.tar.gz --repo eikendev/tbunread
 ```
 
 ## 📄&nbsp;Usage
