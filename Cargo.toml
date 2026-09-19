@@ -5,9 +5,19 @@ authors = ["eikendev"]
 edition = "2024"
 description = "Helps you to keep an eye on unread emails in Thunderbird."
 homepage = "https://github.com/eikendev/tbunread"
-repository = "https://github.com/eikendev/tbunread.git"
+repository = "https://github.com/eikendev/tbunread"
 readme = "README.md"
 license = "ISC"
+
+# Matches the assets uploaded by release.yaml.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }{ archive-suffix }"
+pkg-fmt = "tgz"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
 
 [dependencies]
 anyhow = "1.0.41"
