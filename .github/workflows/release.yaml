@@ -84,6 +84,10 @@ jobs:
     strategy:
       matrix:
         include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
           - target: x86_64-unknown-linux-musl
             runner: ubuntu-24.04
           - target: aarch64-unknown-linux-musl
@@ -109,7 +113,7 @@ jobs:
         with:
           bin: tbunread
           target: ${{ matrix.target }}
-          build-tool: cargo # Native runner per arch, so no cross container.
+          build-tool: cargo # Native runner per arch, and no C deps, so no cross container.
           locked: true
           checksum: sha256
           include: README.md,LICENSE
