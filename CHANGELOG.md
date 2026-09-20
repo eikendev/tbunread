@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.12](https://github.com/eikendev/tbunread/compare/v0.0.11...v0.0.12) (2026-09-20)
+
+
+### Build
+
+* add glibc targets to release binaries ([fe30488](https://github.com/eikendev/tbunread/commit/fe30488cf3b6129a6f9d91dfd917f37409bfa901))
+* **deps:** update dependencies and adapt APIs ([7923b18](https://github.com/eikendev/tbunread/commit/7923b18ca919309dd8bc209453f6107ce3c8d739))
+
 ## [0.0.11](https://github.com/eikendev/tbunread/compare/v0.0.10...v0.0.11) (2026-09-19)
 
 
