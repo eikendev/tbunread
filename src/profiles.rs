@@ -19,7 +19,7 @@ fn process_sections(file: Ini) -> Result<PathBuf> {
                 continue;
             }
 
-            let name = prop.iter().filter(|x| x.0 == "Default").map(|x| x.1).last();
+            let name = prop.iter().filter(|x| x.0 == "Default").map(|x| x.1).next_back();
 
             if let Some(n) = name {
                 return Ok(get_thunderbird_home()?.join(n).join("ImapMail").join("tbunread"));

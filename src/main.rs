@@ -5,21 +5,20 @@ mod settings;
 use anyhow::{Context, Result, anyhow};
 use count::count_all;
 use env_logger::Env;
-use lazy_static::lazy_static;
 use log::{error, info};
-use notify::{DebouncedEvent, RecursiveMode, Watcher, watcher};
+use notify::{EventKind, RecursiveMode};
+use notify_debouncer_full::new_debouncer;
 use settings::Settings;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::sync::LazyLock;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use std::{ffi, fs, thread, time};
-use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
+use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System, UpdateKind};
 
-lazy_static! {
-    static ref SETTINGS: Settings = argh::from_env();
-    static ref PROFILE_DIR: PathBuf = profiles::get_watch_dir();
-}
+static SETTINGS: LazyLock<Settings> = LazyLock::new(argh::from_env);
+static PROFILE_DIR: LazyLock<PathBuf> = LazyLock::new(profiles::get_watch_dir);
 
 fn write_count(s: &Settings, data: &str) -> Result<()> {
     if !s.quiet {
@@ -58,25 +57,32 @@ fn watch_filesystem(s: &'static Settings, path: &'static Path, err_tx: Sender<an
     info!("Watching {}", path.display());
     thread::spawn(move || {
         let (tx, rx) = mpsc::channel();
-        let mut watcher = match watcher(tx, Duration::from_secs(2)) {
-            Ok(w) => w,
+        let mut debouncer = match new_debouncer(Duration::from_secs(2), None, tx) {
+            Ok(d) => d,
             Err(e) => {
                 let _ = err_tx.send(anyhow!("unable to start filesystem watcher: {}", e));
                 return;
             }
         };
 
-        if let Err(e) = watcher.watch(path, RecursiveMode::Recursive) {
+        if let Err(e) = debouncer.watch(path, RecursiveMode::Recursive) {
             let _ = err_tx.send(anyhow!("unable to watch {} recursively: {}", path.display(), e));
             return;
         }
 
         loop {
             match rx.recv() {
-                Ok(DebouncedEvent::Write(_)) => {
-                    update_and_log(s, path, &err_tx);
+                // The debouncer batches events, so one write burst yields one recount.
+                Ok(Ok(events)) => {
+                    if events.iter().any(|event| matches!(event.kind, EventKind::Modify(_))) {
+                        update_and_log(s, path, &err_tx);
+                    }
                 }
-                Ok(_) => {}
+                Ok(Err(errors)) => {
+                    for e in errors {
+                        error!("Filesystem watch error: {e}");
+                    }
+                }
                 Err(e) => {
                     let _ = err_tx.send(anyhow!("watch event channel failed: {}", e));
                     break;
@@ -90,7 +96,9 @@ fn watch_filesystem(s: &'static Settings, path: &'static Path, err_tx: Sender<an
 
 fn watch_thunderbird_process(s: &Settings, path: &Path, err_rx: &Receiver<anyhow::Error>) -> Result<()> {
     let delay = time::Duration::from_secs(s.interval);
-    let mut sys = System::new_with_specifics(RefreshKind::new().with_processes());
+    // Only the executable path is needed, so skip the rest of the per-process data.
+    let process_refresh = ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet);
+    let mut sys = System::new_with_specifics(RefreshKind::nothing().with_processes(process_refresh));
     let mut was_running = true;
     let mut first = true;
 
@@ -101,11 +109,11 @@ fn watch_thunderbird_process(s: &Settings, path: &Path, err_rx: &Receiver<anyhow
             Err(TryRecvError::Disconnected) => return Err(anyhow!("file watcher thread disconnected")),
         }
 
-        sys.refresh_processes();
+        sys.refresh_processes_specifics(ProcessesToUpdate::All, true, process_refresh);
         let mut running = false;
 
         for process in sys.processes().values() {
-            let stem = process.exe().file_stem();
+            let stem = process.exe().and_then(|exe| exe.file_stem());
             match stem {
                 Some(x) if x == ffi::OsStr::new("thunderbird") => {
                     running = true;

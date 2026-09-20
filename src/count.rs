@@ -1,13 +1,12 @@
 use anyhow::{Context, Result, bail};
-use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Component, Path};
+use std::sync::LazyLock;
 
-lazy_static! {
-    static ref COUNT_REGEX: Regex = Regex::new(r"\(\^A2=(?P<count>[[:xdigit:]]+)\)").expect("valid Thunderbird regex");
-}
+static COUNT_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\(\^A2=(?P<count>[[:xdigit:]]+)\)").expect("valid Thunderbird regex"));
 
 pub struct Count {
     list: Vec<usize>,
