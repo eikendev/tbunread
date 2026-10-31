@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.13](https://github.com/eikendev/tbunread/compare/v0.0.12...v0.0.13) (2026-10-31)
+
+
+### Build
+
+* **actions:** bump zizmorcore/zizmor-action ([#7](https://github.com/eikendev/tbunread/issues/7)) ([a8a35d2](https://github.com/eikendev/tbunread/commit/a8a35d27d18eb4fefec6f309c6fc361a97bed002))
+* **actions:** bump zizmorcore/zizmor-action ([#9](https://github.com/eikendev/tbunread/issues/9)) ([d09b5fb](https://github.com/eikendev/tbunread/commit/d09b5fb656a734d94664e2e51f309dfb304f32b1))
+
 ## [0.0.12](https://github.com/eikendev/tbunread/compare/v0.0.11...v0.0.12) (2026-09-20)
 
 
